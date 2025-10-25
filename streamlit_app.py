@@ -20,7 +20,7 @@ BASE_URL = "https://www.showroom-live.com"
 ORGANIZER_ADMIN_URL = f"{BASE_URL}/event/admin_organizer" 
 ORGANIZER_TOP_URL = f"{BASE_URL}/organizer" 
 APPROVE_ENDPOINT = f"{BASE_URL}/event/organizer_approve"
-CHECK_INTERVAL_SECONDS = 300  # 5分間隔でチェック
+CHECK_INTERVAL_SECONDS = 30  # 5分間隔でチェック
 
 # JSTタイムゾーン定義
 JST = datetime.timezone(datetime.timedelta(hours=9), 'JST') 
@@ -268,8 +268,6 @@ def main():
                 else:
                     st.info("未承認イベントはありませんでした。")
                     
-                # 承認処理のログはここで終わり
-
             
             # 次のチェックまでの待機時間計算 (log_placeholderの外で表示し、待機ログは残す)
             elapsed_time = time.time() - start_time

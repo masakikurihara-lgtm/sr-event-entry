@@ -23,10 +23,9 @@ APPROVE_ENDPOINT = f"{BASE_URL}/event/organizer_approve"
 JST = datetime.timezone(datetime.timedelta(hours=9), 'JST') 
 
 # ==============================================================================
-# ----------------- セッション構築関数 (流用) -----------------
+# ----------------- セッション構築関数 -----------------
 # ==============================================================================
-# (既存のcreate_authenticated_session関数と同じ内容をここにコピー)
-# ...
+
 def create_authenticated_session(cookie_string):
     """手動で取得したCookie文字列から認証済みRequestsセッションを構築する"""
     session = requests.Session()
@@ -45,10 +44,9 @@ def create_authenticated_session(cookie_string):
         return None
 
 # ==============================================================================
-# ----------------- 承認関数 (流用) -----------------
+# ----------------- 承認関数 -----------------
 # ==============================================================================
-# (既存のapprove_entry関数と同じ内容をここにコピー)
-# ...
+
 def approve_entry(session, approval_data):
     """個別のイベント参加申請を承認します。"""
     payload = {
@@ -85,15 +83,14 @@ def approve_entry(session, approval_data):
         return False
 
 # ==============================================================================
-# ----------------- 未承認イベント検索関数 (フィルタリング機能を追加) -----------------
+# ----------------- 未承認イベント検索関数 (イベント名取得を追加) -----------------
 # ==============================================================================
 
 def find_pending_approvals_filtered(session, target_room_id):
     """特定のルームIDに一致する未承認のイベント参加申請のみを抽出する"""
-    # (既存のfind_pending_approvalsの内容をほぼ流用し、フィルタリングを追加)
-    # ...
+    
     try:
-        r = session.get(ORGANIZER_ADMIN_URL, headers={}) # ヘッダーは適宜設定
+        r = session.get(ORGANIZER_ADMIN_URL, headers={}) 
         r.raise_for_status()
     except requests.exceptions.RequestException as e:
         st.error(f"管理ページへのアクセスに失敗しました: {e}")
@@ -119,7 +116,6 @@ def find_pending_approvals_filtered(session, target_room_id):
 
     for form in approval_forms:
         try:
-            # CSRFトークンはページ全体から取得したものを使うため、ここではチェックしない
             room_id_str = form.find('input', {'name': 'room_id'})['value']
             event_id = form.find('input', {'name': 'event_id'})['value']
             
@@ -127,44 +123,63 @@ def find_pending_approvals_filtered(session, target_room_id):
             if room_id_str == str(target_room_id):
                 tr_tag = form.find_parent('tr')
                 room_name_tag = tr_tag.find('a', href=re.compile(r'/room/profile\?room_id='))
+                # 🚨 修正: イベント名タグの取得
+                event_name_tag = tr_tag.find('a', href=re.compile(r'/event/')) 
+
                 room_name = room_name_tag.text.strip() if room_name_tag else "不明なルーム"
+                # 🚨 修正: イベント名を取得
+                event_name = event_name_tag.text.strip() if event_name_tag else "不明なイベント" 
 
                 pending_approvals.append({
-                    'csrf_token': csrf_token, # ページ全体のトークンを使用
+                    'csrf_token': csrf_token, 
                     'room_id': room_id_str,
                     'event_id': event_id,
-                    'room_name': room_name
+                    'room_name': room_name,
+                    'event_name': event_name # 🚨 追加
                 })
         except Exception as e:
-            # st.error(f"イベント情報の抽出中にエラーが発生しました: {e}")
             continue
 
     return pending_approvals, csrf_token
 
 # ==============================================================================
-# ----------------- メイン関数 (手動承認アプリ) -----------------
+# ----------------- メイン関数 -----------------
 # ==============================================================================
 
 def main():
     st.title("🚨 緊急手動承認ツール（ライバー共有可）")
     st.markdown("---")
     
-    # 1. ライバーのルームIDを取得
-    # Streamlitのクエリパラメータからroom_idを取得するか、手動入力させる
-    default_room_id = st.query_params.get("room_id", "")
-    target_room_id = st.text_input(
-        "承認したいライバーのルームIDを入力してください:", 
-        value=default_room_id, 
-        help="このルームIDの未承認申請のみが表示されます。"
-    )
+    # セッション状態の初期化
+    if 'search_button_clicked' not in st.session_state:
+        st.session_state.search_button_clicked = False
 
-    if not target_room_id.isdigit():
-        st.warning("⚠️ 有効なルームID（数字）を入力してください。")
+    # 1. ルームIDの入力とボタン制御 (修正項目①)
+    default_room_id = st.query_params.get("room_id", "")
+    
+    with st.form("room_search_form"):
+        target_room_id = st.text_input(
+            "承認したいライバーのルームIDを入力してください:", 
+            value=default_room_id, 
+            help="このルームIDの未承認申請のみが表示されます。"
+        )
+        # フォームの送信ボタン
+        if st.form_submit_button("リストを表示 / 再検索"):
+            # ボタンが押されたことを記録
+            if target_room_id and target_room_id.isdigit():
+                 st.session_state.search_button_clicked = True
+            else:
+                 st.session_state.search_button_clicked = False
+    
+    # ボタンが押されていない、またはIDが不正な場合はここで処理を終了
+    if not st.session_state.search_button_clicked or not target_room_id.isdigit():
+        if st.session_state.search_button_clicked and not target_room_id.isdigit():
+             st.error("⚠️ 有効なルームID（数字）を入力してください。")
+        elif not st.session_state.search_button_clicked:
+             st.warning("⚠️ ルームIDを入力して「リストを表示 / 再検索」ボタンを押してください。")
         return
 
-    st.markdown("---")
-
-    # 2. セッション構築と認証検証 (ON/OFFスイッチなし)
+    # 2. 検索実行ブロック
     session = create_authenticated_session(AUTH_COOKIE_STRING)
     if not session:
         return
@@ -177,7 +192,6 @@ def main():
     
     if not pending_entries:
         st.success(f"✅ ルームID `{target_room_id}` の未承認イベント申請は見つかりませんでした。")
-        st.button("リストを再読み込み", on_click=st.rerun)
         return
 
     num_pending = len(pending_entries)
@@ -186,30 +200,26 @@ def main():
     st.markdown("---")
     st.header("承認が必要な申請リスト")
 
-    # 4. 承認処理の実行
+    # 4. 承認処理の表示と実行
     approved_count = 0
     
     for i, entry in enumerate(pending_entries):
         with st.container(border=True):
             st.markdown(f"**ルーム名**: {entry['room_name']}")
-            st.markdown(f"**イベントID**: {entry['event_id']}")
+            # 🚨 修正項目②: イベント名を表示
+            st.markdown(f"**イベント名**: **{entry['event_name']}**")
             
-            # 承認ボタン。キーをユニークにする
-            if st.button(f"🚀 このイベントを承認する", key=f"approve_{entry['room_id']}_{entry['event_id']}"):
-                # 承認データにCSRFトークンを確実にセット
+            if st.button(f"🚀 {entry['event_name']} を承認する", key=f"approve_{entry['room_id']}_{entry['event_id']}"):
                 entry['csrf_token'] = csrf_token 
                 
                 if approve_entry(session, entry):
                     approved_count += 1
-                    time.sleep(1) # 連続承認防止
+                    time.sleep(1) 
                     # 承認成功後、画面をリロードしてリストを更新
                     st.rerun() 
 
     if approved_count == 0:
         st.info("↑ 上記のボタンを押して手動で承認してください。")
-        st.markdown("---")
-        st.button("リストを再読み込み", on_click=st.rerun)
-
 
 if __name__ == "__main__":
     main()

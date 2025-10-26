@@ -148,7 +148,7 @@ def find_pending_approvals_filtered(session, target_room_id):
 
 def main():
     st.markdown(
-        "<h1 style='font-size:28px; text-align:left; color:#1f2937;'>🚨 SHOWROOM イベント緊急手動承認ツール</h1>",
+        "<h1 style='font-size:28px; text-align:center; color:#1f2937;'>🚨 SHOWROOM イベント緊急手動承認ツール</h1>",
         unsafe_allow_html=True
     )
     #st.title("🚨 SHOWROOM イベント緊急手動承認ツール")

@@ -213,7 +213,7 @@ def main():
     
     st.markdown("---")
     #st.header("承認が必要な申請リスト")
-    st.markdown(f"##### 承認が必要な申請リス")
+    st.markdown(f"##### 承認が必要な申請リスト")
 
     # 4. 承認処理の表示と実行
     approved_count = 0

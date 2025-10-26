@@ -147,6 +147,13 @@ def find_pending_approvals_filtered(session, target_room_id):
 # ==============================================================================
 
 def main():
+    # ページ設定
+    st.set_page_config(
+        page_title="SHOWROOM イベント緊急手動承認",
+        #page_icon="🚨",
+        page_icon="🚨"
+        #layout="wide"
+    )
     st.markdown(
         "<h1 style='font-size:28px; text-align:center; color:#1f2937;'>🚨 SHOWROOM イベント緊急手動承認ツール</h1>",
         unsafe_allow_html=True

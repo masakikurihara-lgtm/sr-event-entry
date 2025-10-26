@@ -163,7 +163,7 @@ def main():
     
     with st.form("room_search_form"):
         target_room_id = st.text_input(
-            "承認したいライバーのルームIDを入力してください:", 
+            "ルームIDを入力してください:", 
             value=default_room_id, 
             help="このルームIDの未承認申請のみが表示されます。"
         )

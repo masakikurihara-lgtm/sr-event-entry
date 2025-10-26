@@ -13,7 +13,8 @@ try:
     # 既存のオーガナイザーCookieを使用
     AUTH_COOKIE_STRING = st.secrets["showroom"]["auth_cookie_string"]
 except KeyError:
-    st.error("🚨 SecretsにオーガナイザーのCookieが設定されていません。")
+    #st.error("🚨 SecretsにオーガナイザーのCookieが設定されていません。")
+    st.error("🚨 認証設定がされていません。")
     st.stop()
 
 BASE_URL = "https://www.showroom-live.com"
@@ -40,7 +41,7 @@ def create_authenticated_session(cookie_string):
         session.cookies.update(cookies_dict)
         return session
     except Exception as e:
-        st.error(f"Cookie解析中にエラーが発生しました: {e}")
+        st.error(f"認証セッション解析中にエラーが発生しました: {e}")
         return None
 
 # ==============================================================================
@@ -93,7 +94,8 @@ def find_pending_approvals_filtered(session, target_room_id):
         r = session.get(ORGANIZER_ADMIN_URL, headers={}) 
         r.raise_for_status()
     except requests.exceptions.RequestException as e:
-        st.error(f"管理ページへのアクセスに失敗しました: {e}")
+        #st.error(f"管理ページへのアクセスに失敗しました: {e}")
+        st.error(f"該当ページへのアクセスに失敗しました: {e}")
         return [], None
 
     soup = BeautifulSoup(r.text, 'html.parser')
@@ -159,6 +161,7 @@ def main():
         unsafe_allow_html=True
     )
     #st.title("🚨 SHOWROOM イベント緊急手動承認ツール")
+    st.markdown("<p style='text-align: center;'>⚠️ <b>注意</b>: このツールは、<b>管理者が認証セッションを許可している場合のみ</b>動作します。</p>", unsafe_allow_html=True)
     st.markdown("---")
     
     # セッション状態の初期化

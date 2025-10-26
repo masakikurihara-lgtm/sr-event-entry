@@ -147,7 +147,7 @@ def find_pending_approvals_filtered(session, target_room_id):
 # ==============================================================================
 
 def main():
-    st.title("🚨 SHOWROOM イベント緊急手動承認ツール")
+    st.title("<h1 style='font-size:28px; text-align:left; color:#1f2937;'>🚨 SHOWROOM イベント緊急手動承認ツール</h1>")
     st.markdown("---")
     
     # セッション状態の初期化
